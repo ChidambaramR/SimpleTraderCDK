@@ -137,7 +137,8 @@ sudo systemctl restart crond
         stop_lambda = _lambda.Function(self, "Stop"+app_name+"InstanceLambda",
             runtime=_lambda.Runtime.PYTHON_3_9,
             code=_lambda.Code.from_asset("lambda_functions/stop"),
-            handler="start.handler",
+            handler="stop.handler",
+            timeout=Duration.seconds(300),  # Increase timeout to 5 minutes
             role=role,
             environment={
                 "INSTANCE_ID": instance.instance_id,
