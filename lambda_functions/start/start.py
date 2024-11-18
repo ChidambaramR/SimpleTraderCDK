@@ -31,7 +31,7 @@ def handler(event, context):
     repo_key = "repo.zip"
     config_key = "config.py"
     requirements_key = "requirements.txt"
-    access_token_key = "access_toke.txt"
+    access_token_key = "access_token.txt"
     wd_path = f"/home/ec2-user/projects/{app_name}"
     repo_local_path = f"{wd_path}/repo.zip"
 
@@ -53,7 +53,7 @@ def handler(event, context):
             f"echo \"Copying requirements.txt from bucket {bucket_name} to {wd_path}/{requirements_key}\"",
             f"aws s3 cp s3://{bucket_name}/{requirements_key} {wd_path}/{requirements_key}",
 
-            # Step 5: Download access_toke.txt
+            # Step 5: Download access_token.txt
             f"echo \"Copying access_token.txt from bucket {bucket_name} to {wd_path}/{access_token_key}\"",
             f"aws s3 cp s3://{bucket_name}/{access_token_key} {wd_path}/{access_token_key}",
 

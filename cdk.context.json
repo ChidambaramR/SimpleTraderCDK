@@ -35,5 +35,37 @@
         ]
       }
     ]
+  },
+  "vpc-provider:account=912176034906:filter.isDefault=true:region=ap-south-1:returnAsymmetricSubnets=true": {
+    "vpcId": "vpc-01e3177202a5bc465",
+    "vpcCidrBlock": "172.31.0.0/16",
+    "ownerAccountId": "912176034906",
+    "availabilityZones": [],
+    "subnetGroups": [
+      {
+        "name": "Public",
+        "type": "Public",
+        "subnets": [
+          {
+            "subnetId": "subnet-0241478530b85b084",
+            "cidr": "172.31.32.0/20",
+            "availabilityZone": "ap-south-1a",
+            "routeTableId": "rtb-06e62b4790526d9f7"
+          },
+          {
+            "subnetId": "subnet-00bd8ae39a0686265",
+            "cidr": "172.31.0.0/20",
+            "availabilityZone": "ap-south-1b",
+            "routeTableId": "rtb-06e62b4790526d9f7"
+          },
+          {
+            "subnetId": "subnet-0f2581b0ae8d0ff88",
+            "cidr": "172.31.16.0/20",
+            "availabilityZone": "ap-south-1c",
+            "routeTableId": "rtb-06e62b4790526d9f7"
+          }
+        ]
+      }
+    ]
   }
 }
