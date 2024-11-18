@@ -1,5 +1,6 @@
 import os
 from aws_cdk import (
+    Duration,
     aws_ec2 as ec2,
     aws_iam as iam,
     aws_s3 as s3,
@@ -29,7 +30,7 @@ class SimpleTraderCdkStack(Stack):
         instance = self.create_ec2_instance(app_name, vpc, role, bucket_name)
 
         # Automatically start and stop ec2 instance
-        self.create_start_stop_role(instance, app_name, role)
+        self.create_start_stop_role(instance, app_name, role, bucket_name)
 
     def create_ec2_instance(self, app_name, vpc, role, bucket_name):
         repo_key = "repo.zip"
@@ -64,61 +65,84 @@ class SimpleTraderCdkStack(Stack):
         )
 
         # User Data Script for EC2 Instance
-        instance.user_data.add_commands(
-            # Step 1: Remove existing directory
-            f"rm -rf {wd_path}",
-            f"echo \"Copying repo {repo_key} from bucket {bucket_name} to {repo_local_path}\"",
+        # User Data script
+        user_data_script = """
+#!/bin/bash
 
-            # Step 2: Download and unzip repo.zip
-            f"aws s3 cp s3://{bucket_name}/{repo_key} {repo_local_path}",
-            f"mkdir -p {wd_path}",
-            f"unzip {repo_local_path} -d {wd_path}",
+sudo systemctl enable crond
 
-            # Step 3: Download config.py
-            f"echo \"Copying config.py from bucket {bucket_name} to {wd_path}/src/{config_key}\"",
-            f"aws s3 cp s3://{bucket_name}/{config_key} {wd_path}/src/{config_key}",
+sudo ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
+sudo timedatectl set-timezone Asia/Kolkata
 
-            # Step 4: Download requirements.txt
-            f"echo \"Copying requirements.txt from bucket {bucket_name} to {wd_path}/{requirements_key}\"",
-            f"aws s3 cp s3://{bucket_name}/{requirements_key} {wd_path}/{requirements_key}",
+# Install development tools
+sudo yum groupinstall "Development Tools" -y
+sudo yum install gcc libffi-devel bzip2 bzip2-devel zlib-devel xz-devel wget make -y
+sudo yum install openssl11-devel -y
+sudo yum install -y openssl11
+sudo yum install -y sqlite-devel
 
-            # Step 5: Create virtual environment and install dependencies
-            f"cd {wd_path}",
-            "python3 -m venv venv",
-            "source venv/bin/activate",
-            "pip install -r requirements.txt",
+sudo yum remove -y openssl-devel
 
-            # Step 6: Run setup.py
-            "python setup/setup.py",
+# Create the base directory if it doesn't exist
+mkdir -p /home/ec2-user/projects/SimpleTraderLogs/trade_logs
+mkdir -p /home/ec2-user/projects/SimpleTraderLogs/setup_logs
+mkdir -p /home/ec2-user/installers
 
-            # Step 7: Wait for market start and execute trade.py
-            "echo 'Waiting for market start time...'"
-        )
+# Install python 3.9.6
+cd /home/ec2-user/installers
+sudo wget https://www.python.org/ftp/python/3.9.6/Python-3.9.6.tgz
+sudo tar xzf Python-3.9.6.tgz
+
+cd Python-3.9.6/
+
+sudo make clean
+sudo ./configure --enable-optimizations
+sudo make altinstall
+python3.9 -m ensurepip --upgrade
+python3.9 -m pip install --upgrade pip
+
+# Give back control to the user
+sudo chown -R ec2-user:ec2-user /home/ec2-user/
+
+# Create the cron job entries
+echo "15 8 * * 1-5 ec2-user /bin/bash -c 'CURRENT_DATE=\$(date +\%Y-\%m-\%d); mkdir -p /home/ec2-user/projects/SimpleTraderLogs/setup_logs/\$CURRENT_DATE; python3.9 /home/ec2-user/projects/SimpleTrader/src/setup/setup.py >> /home/ec2-user/projects/SimpleTraderLogs/setup_logs/\$CURRENT_DATE/setup.log 2>&1'" | sudo tee -a /etc/crontab
+echo "11 9 * * 1-5 ec2-user /bin/bash -c 'CURRENT_DATE=\$(date +\%Y-\%m-\%d); mkdir -p /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE; python3.9 /home/ec2-user/projects/SimpleTrader/src/trade.py >> /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE/trade.log 2>&1'" | sudo tee -a /etc/crontab
+
+# Restart cron to apply the new jobs
+sudo systemctl restart crond
+"""
+
+        instance.add_user_data(user_data_script)
 
         # Allow EC2 to SSH
         instance.connections.allow_from_any_ipv4(ec2.Port.tcp(22), "Allow SSH")
 
         return instance
 
-    def create_start_stop_role(self, instance, app_name, role):
+    def create_start_stop_role(self, instance, app_name, role, bucket_name):
         # Create Lambda functions to start and stop the instance
         start_lambda = _lambda.Function(self, "Start"+app_name+"InstanceLambda",
             runtime=_lambda.Runtime.PYTHON_3_9,
             code=_lambda.Code.from_asset("lambda_functions/start"),
-            handler="lambda_function.handler",
+            handler="start.handler",
             role=role,
+            timeout=Duration.seconds(300),  # Increase timeout to 5 minutes
             environment={
-                "INSTANCE_ID": instance.instance_id
+                "INSTANCE_ID": instance.instance_id,
+                "BUCKET_NAME" : bucket_name,
+                "APP_NAME" : app_name
             }
         )
 
         stop_lambda = _lambda.Function(self, "Stop"+app_name+"InstanceLambda",
             runtime=_lambda.Runtime.PYTHON_3_9,
             code=_lambda.Code.from_asset("lambda_functions/stop"),
-            handler="lambda_function.handler",
+            handler="start.handler",
             role=role,
             environment={
-                "INSTANCE_ID": instance.instance_id
+                "INSTANCE_ID": instance.instance_id,
+                "BUCKET_NAME" : bucket_name,
+                "APP_NAME" : app_name
             }
         )
 
@@ -134,7 +158,7 @@ class SimpleTraderCdkStack(Stack):
         stop_rule.add_target(targets.LambdaFunction(stop_lambda))
 
     def create_iam_role(self, app_name):
-        return iam.Role(self, app_name+"Role",
+        role = iam.Role(self, app_name+"Role",
                     assumed_by=iam.CompositePrincipal(
                         iam.ServicePrincipal("ec2.amazonaws.com"),  # EC2 can assume this role
                         iam.ServicePrincipal("lambda.amazonaws.com")  # Lambda can also assume this role
@@ -142,6 +166,32 @@ class SimpleTraderCdkStack(Stack):
                     description="Role required for services for running SimpleTrader application",
                     managed_policies=[
                         iam.ManagedPolicy.from_aws_managed_policy_name("AmazonEC2FullAccess"),  # EC2 permissions
-                        iam.ManagedPolicy.from_aws_managed_policy_name("AmazonS3ReadOnlyAccess")  # S3 permissions
+                        iam.ManagedPolicy.from_aws_managed_policy_name("AmazonS3ReadOnlyAccess"),  # S3 permissions
+                        iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSSMManagedInstanceCore")  # Add SSM permissions
                     ]
         )
+
+        role.add_to_policy(
+            iam.PolicyStatement(
+                sid="Statement1",
+                effect=iam.Effect.ALLOW,
+                actions=["ssm:SendCommand"],
+                resources=[
+                    f"arn:aws:ec2:{self.region}:{self.account}:instance/*",
+                    f"arn:aws:ssm:{self.region}::document/AWS-RunShellScript",
+                ],
+            )
+        )
+
+        role.add_to_policy(
+            iam.PolicyStatement(
+                sid="Statement2",
+                effect=iam.Effect.ALLOW,
+                actions=["ssm:GetCommandInvocation"],
+                resources=[
+                    f"arn:aws:ssm:{self.region}:{self.account}:*"
+                ],
+            )
+        )
+
+        return role

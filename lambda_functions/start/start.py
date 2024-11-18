@@ -1,7 +1,99 @@
 import os
 import boto3
+import time
 
 def handler(event, context):
     instance_id = os.environ['INSTANCE_ID']
-    ec2 = boto3.client('ec2')
-    ec2.start_instances(InstanceIds=[instance_id])
+    bucket_name = os.environ['BUCKET_NAME']
+    app_name = os.environ['APP_NAME']
+
+    ec2_client = boto3.client('ec2')
+
+    # Step 1: Check the current state of the instance and start if required
+    response = ec2_client.describe_instances(InstanceIds=[instance_id])
+    current_state = response['Reservations'][0]['Instances'][0]['State']['Name']
+    print(f"Current state of instance {instance_id}: {current_state}")
+
+    if current_state == 'running':
+        print(f"Instance {instance_id} is already running. Skipping start.")
+    else:
+        # Start the instance
+        print(f"Starting instance {instance_id}...")
+        ec2_client.start_instances(InstanceIds=[instance_id])
+
+        # Wait for the instance to enter the running state
+        print(f"Waiting for instance {instance_id} to be in 'running' state...")
+        waiter = ec2_client.get_waiter('instance_running')
+        waiter.wait(InstanceIds=[instance_id])
+        print(f"Instance {instance_id} is now running.")
+
+    # Step 2: Prep the host by setting up the directories
+    repo_key = "repo.zip"
+    config_key = "config.py"
+    requirements_key = "requirements.txt"
+    access_token_key = "access_toke.txt"
+    wd_path = f"/home/ec2-user/projects/{app_name}"
+    repo_local_path = f"{wd_path}/repo.zip"
+
+    commands = [
+            # Step 1: Remove existing directory
+            f"rm -rf {wd_path}",
+            f"echo \"Copying repo {repo_key} from bucket {bucket_name} to {repo_local_path}\"",
+
+            # Step 2: Download and unzip repo.zip
+            f"aws s3 cp s3://{bucket_name}/{repo_key} {repo_local_path}",
+            f"mkdir -p {wd_path}",
+            f"unzip {repo_local_path} -d {wd_path}",
+
+            # Step 3: Download config.py
+            f"echo \"Copying config.py from bucket {bucket_name} to {wd_path}/src/{config_key}\"",
+            f"aws s3 cp s3://{bucket_name}/{config_key} {wd_path}/src/{config_key}",
+
+            # Step 4: Download requirements.txt
+            f"echo \"Copying requirements.txt from bucket {bucket_name} to {wd_path}/{requirements_key}\"",
+            f"aws s3 cp s3://{bucket_name}/{requirements_key} {wd_path}/{requirements_key}",
+
+            # Step 5: Download access_toke.txt
+            f"echo \"Copying access_token.txt from bucket {bucket_name} to {wd_path}/{access_token_key}\"",
+            f"aws s3 cp s3://{bucket_name}/{access_token_key} {wd_path}/{access_token_key}",
+
+            # Step 6: Create virtual environment and install dependencies
+            f"cd {wd_path}",
+            "python3.9 -m pip install -r requirements.txt",
+
+            # Step 7: Restore permissions since we created new directories
+            "sudo chown -R ec2-user:ec2-user /home/ec2-user/",
+
+            # Step 8: Run setup.py
+            "python3.9 setup/setup.py",
+
+            # Step 9: Wait for market start and execute trade.py
+            "echo 'Waiting for market start time...'"
+    ]
+
+    ssm_client = boto3.client('ssm')
+
+    try:
+        # Send commands as a shell script
+        response = ssm_client.send_command(
+            InstanceIds=[instance_id],
+            DocumentName="AWS-RunShellScript",  # Built-in SSM document for running shell scripts
+            Parameters={"commands": commands},
+        )
+        
+        # Get Command ID
+        command_id = response['Command']['CommandId']
+        print(f"Command sent: {command_id}")
+
+        # Optionally, wait for the command to complete
+        time.sleep(2)  # Small delay before checking status
+        output = ssm_client.get_command_invocation(
+            CommandId=command_id,
+            InstanceId=instance_id,
+        )
+        print(f"Command output: {output['StandardOutputContent']}")
+        
+        return {"status": "Success", "details": output}
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return {"status": "Failed", "error": str(e)}
