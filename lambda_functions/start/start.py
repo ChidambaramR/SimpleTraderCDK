@@ -32,7 +32,6 @@ def handler(event, context):
     config_key = "config.py"
     requirements_key = "requirements.txt"
     access_token_key = "access_token.txt"
-    prod_db_key = "prod_data.db"
     keysjson_key = "keys.json"
     wd_path = f"/home/ec2-user/projects/{app_name}"
     repo_local_path = f"{wd_path}/repo.zip"
@@ -59,23 +58,16 @@ def handler(event, context):
             f"echo \"Copying access_token.txt from bucket {bucket_name} to {wd_path}/{access_token_key}\"",
             f"aws s3 cp s3://{bucket_name}/{access_token_key} {wd_path}/{access_token_key}",
 
-            # Step 6: Download prod_data.db
-            f"echo \"Copying prod_data.db from bucket {bucket_name} to {wd_path}/{prod_db_key}\"",
-            f"aws s3 cp s3://{bucket_name}/{prod_db_key} {wd_path}/{prod_db_key}",
-
-            # Step 7: Download keys.json
+            # Step 6: Download keys.json
             f"echo \"Copying keys.json from bucket {bucket_name} to {wd_path}/{keysjson_key}\"",
             f"aws s3 cp s3://{bucket_name}/{keysjson_key} {wd_path}/{keysjson_key}",
 
-            # Step 8: install dependencies
+            # Step 7: install dependencies
             f"cd {wd_path}",
             "python3.9 -m pip install -r requirements.txt",
 
-            # Step 9: Restore permissions since we created new directories
+            # Step 8: Restore permissions since we created new directories
             "sudo chown -R ec2-user:ec2-user /home/ec2-user/",
-
-            # Step 10: Run setup.py
-            "python3.9 setup/setup.py",
     ]
 
     ssm_client = boto3.client('ssm')

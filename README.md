@@ -18,6 +18,8 @@ This project tracks the AWS infrastructure used for SimpleTrader trading applica
   - Lambda to start and stop the ec2 machine
   - Eventbridge rule to trigger the lambda
 - NOTE: For now, we have to manually create a S3 bucket since cdk deploy is not updating the S3 bucket and this results in a failure or a rollback of the stack during deploy
+  - Create a S3 bucket with name like `simpletrader-working-bucket-ajith`, the suffix `-ajith` is required as S3 mandates global uniqueness across all AWS accounts.
+  - Setup Mac/Linux Environment Variable `s3_bucket_suffix` with the value like `-ajith`. This is used in CDK setup to use the bucket named with appropriate suffix.
 - This is the high level flow the different components
   - The ec2 machine is created upon stack synthesis.
     - It sets up the machine for Python3.9 since the algorithm and trading platform was developed using Python3.9
@@ -29,7 +31,6 @@ This project tracks the AWS infrastructure used for SimpleTrader trading applica
       - Latest code base from the S3 bucket
       - keys.json containing the aws api key and secret key
       - access_token.txt which contains that days access token obtained from Zerodha
-      - prod_data.db which contains any OHLC data for today
       - Downloads requirements.txt from S3 bucket and sets up Python site-packages required
   - During trading time, the cron job starts the trading script
 
