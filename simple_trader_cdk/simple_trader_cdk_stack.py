@@ -3,14 +3,10 @@ from aws_cdk import (
     Duration,
     aws_ec2 as ec2,
     aws_iam as iam,
-    aws_s3 as s3,
     aws_events as events,
     aws_events_targets as targets,
-    aws_ssm as ssm,
     aws_lambda as _lambda,
-    Stack,
-    RemovalPolicy
-    # aws_sqs as sqs,
+    Stack
 )
 from constructs import Construct
 
@@ -19,7 +15,8 @@ class SimpleTraderCdkStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         app_name = "SimpleTrader"
-        bucket_name = "simpletrader-working-bucket"
+        s3_bucket_suffix = os.getenv("S3_BUCKET_SUFFIX", "")
+        bucket_name = f"simpletrader-working-bucket{s3_bucket_suffix}"
 
         role = self.create_iam_role(app_name)
 
