@@ -78,7 +78,7 @@ sudo yum remove -y openssl-devel
 
 # Create the base directory if it doesn't exist
 mkdir -p /home/ec2-user/projects/SimpleTraderLogs/trade_logs
-mkdir -p /home/ec2-user/projects/SimpleTraderLogs/setup_logs
+mkdir -p /home/ec2-user/projects/SimpleTraderReports
 mkdir -p /home/ec2-user/installers
 
 # Install python 3.9.6
@@ -98,8 +98,7 @@ python3.9 -m pip install --upgrade pip
 sudo chown -R ec2-user:ec2-user /home/ec2-user/
 
 # Create the cron job entries
-echo "15 8 * * 1-5 ec2-user /bin/bash -c 'CURRENT_DATE=\$(date +\%Y-\%m-\%d); mkdir -p /home/ec2-user/projects/SimpleTraderLogs/setup_logs/\$CURRENT_DATE; /usr/local/bin/python3.9 /home/ec2-user/projects/SimpleTrader/src/setup/setup.py >> /home/ec2-user/projects/SimpleTraderLogs/setup_logs/\$CURRENT_DATE/setup.log 2>&1'" | sudo tee -a /etc/crontab
-echo "11 9 * * 1-5 ec2-user /bin/bash -c 'CURRENT_DATE=\$(date +\%Y-\%m-\%d); mkdir -p /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE; /usr/local/bin/python3.9 /home/ec2-user/projects/SimpleTrader/src/trade.py >> /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE/trade.log 2>&1'" | sudo tee -a /etc/crontab
+echo "15 8 * * 1-5 ec2-user /bin/bash -c 'CURRENT_DATE=\$(date +\%Y-\%m-\%d); mkdir -p /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE; /usr/local/bin/python3.9 /home/ec2-user/projects/SimpleTrader/src/trade.py >> /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE/trade.log 2>&1'" | sudo tee -a /etc/crontab
 
 # Restart cron to apply the new jobs
 sudo systemctl restart crond
@@ -113,6 +112,9 @@ sudo systemctl restart crond
         return instance
 
     def create_start_stop_role(self, instance, app_name, role, bucket_name):
+        # https://aws-sdk-pandas.readthedocs.io/en/stable/layers.html
+        lambda_layer_arn = "arn:aws:lambda:ap-south-1:336392948345:layer:AWSSDKPandas-Python39:26"
+
         # Create Lambda functions to start and stop the instance
         start_lambda = _lambda.Function(self, "Start"+app_name+"InstanceLambda",
             runtime=_lambda.Runtime.PYTHON_3_9,
@@ -124,7 +126,8 @@ sudo systemctl restart crond
                 "INSTANCE_ID": instance.instance_id,
                 "BUCKET_NAME" : bucket_name,
                 "APP_NAME" : app_name
-            }
+            },
+            layers=[_lambda.LayerVersion.from_layer_version_arn(self, "PandasLayer", lambda_layer_arn)],
         )
 
         stop_lambda = _lambda.Function(self, "Stop"+app_name+"InstanceLambda",

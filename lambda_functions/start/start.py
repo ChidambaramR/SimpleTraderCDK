@@ -1,11 +1,43 @@
+from datetime import datetime, timedelta
 import os
 import boto3
 import time
+
+import pandas as pd
+
+def is_today_holiday():
+    bse_holidays  = [
+        pd.Timestamp("2024-01-26", tz="Asia/Kolkata"),  # Fri, Republic Day
+        pd.Timestamp("2024-03-08", tz="Asia/Kolkata"),  # Fri, Mahashivratri
+        pd.Timestamp("2024-03-25", tz="Asia/Kolkata"),  # Mon, Holi
+        pd.Timestamp("2024-03-29", tz="Asia/Kolkata"),  # Fri, Good Friday
+        pd.Timestamp("2024-04-11", tz="Asia/Kolkata"),  # Thu, Id-Ul-Fitr (Ramadan Eid)
+        pd.Timestamp("2024-04-17", tz="Asia/Kolkata"),  # Wed, Shri Ram Navmi
+        pd.Timestamp("2024-05-01", tz="Asia/Kolkata"),  # Wed, Maharashtra Din
+        pd.Timestamp("2024-06-17", tz="Asia/Kolkata"),  # Mon, Bakri Id / Eid ul-Adha
+        pd.Timestamp("2024-07-17", tz="Asia/Kolkata"),  # Wed, Moharram
+        pd.Timestamp("2024-08-15", tz="Asia/Kolkata"),  # Thu, Independence Day
+        pd.Timestamp("2024-10-02", tz="Asia/Kolkata"),  # Wed, Mahatma Gandhi Jayanti
+        pd.Timestamp("2024-11-01", tz="Asia/Kolkata"),  # Fri, Diwali
+        pd.Timestamp("2024-11-15", tz="Asia/Kolkata"),  # Fri, Guru Nanak's Birthday
+        pd.Timestamp("2024-11-20", tz="Asia/Kolkata"),  # Fri, Guru Nanak's Birthday
+        pd.Timestamp("2024-12-25", tz="Asia/Kolkata"),  # Wed, Christmas
+    ]
+    
+    end_datetime = pd.Timestamp(datetime.now().date(), tz="Asia/Kolkata")
+    if end_datetime in bse_holidays:
+        return True
+
+    return False
 
 def handler(event, context):
     instance_id = os.environ['INSTANCE_ID']
     bucket_name = os.environ['BUCKET_NAME']
     app_name = os.environ['APP_NAME']
+
+    if is_today_holiday():
+        print("Not starting ec2 machine because today is a holiday")
+        return {"status": "Success", "details": "Did not start ec2 machine"}
 
     ec2_client = boto3.client('ec2')
 
