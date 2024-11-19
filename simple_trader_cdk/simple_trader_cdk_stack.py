@@ -33,15 +33,11 @@ class SimpleTraderCdkStack(Stack):
         self.create_start_stop_role(instance, app_name, role, bucket_name)
 
     def create_ec2_instance(self, app_name, vpc, role, bucket_name):
-        repo_key = "repo.zip"
-        config_key = "config.py"
-        requirements_key = "requirements.txt"
         wd_path = f"/home/ec2-user/projects/{app_name}"
         instance_type_str = "c6g.2xlarge"
         key_pair_name = app_name + "KeyPair"
-        repo_local_path = f"{wd_path}/repo.zip"
 
-        key_pair = ec2.CfnKeyPair(self, key_pair_name, key_name=key_pair_name)
+        ec2.CfnKeyPair(self, key_pair_name, key_name=key_pair_name)
 
         security_group = ec2.SecurityGroup(self, "SSHAccessSecurityGroup",
             vpc=vpc,  # Use the default VPC
@@ -105,8 +101,8 @@ python3.9 -m pip install --upgrade pip
 sudo chown -R ec2-user:ec2-user /home/ec2-user/
 
 # Create the cron job entries
-echo "15 8 * * 1-5 ec2-user /bin/bash -c 'CURRENT_DATE=\$(date +\%Y-\%m-\%d); mkdir -p /home/ec2-user/projects/SimpleTraderLogs/setup_logs/\$CURRENT_DATE; python3.9 /home/ec2-user/projects/SimpleTrader/src/setup/setup.py >> /home/ec2-user/projects/SimpleTraderLogs/setup_logs/\$CURRENT_DATE/setup.log 2>&1'" | sudo tee -a /etc/crontab
-echo "11 9 * * 1-5 ec2-user /bin/bash -c 'CURRENT_DATE=\$(date +\%Y-\%m-\%d); mkdir -p /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE; python3.9 /home/ec2-user/projects/SimpleTrader/src/trade.py >> /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE/trade.log 2>&1'" | sudo tee -a /etc/crontab
+echo "15 8 * * 1-5 ec2-user /bin/bash -c 'CURRENT_DATE=\$(date +\%Y-\%m-\%d); mkdir -p /home/ec2-user/projects/SimpleTraderLogs/setup_logs/\$CURRENT_DATE; /usr/local/bin/python3.9 /home/ec2-user/projects/SimpleTrader/src/setup/setup.py >> /home/ec2-user/projects/SimpleTraderLogs/setup_logs/\$CURRENT_DATE/setup.log 2>&1'" | sudo tee -a /etc/crontab
+echo "11 9 * * 1-5 ec2-user /bin/bash -c 'CURRENT_DATE=\$(date +\%Y-\%m-\%d); mkdir -p /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE; /usr/local/bin/python3.9 /home/ec2-user/projects/SimpleTrader/src/trade.py >> /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE/trade.log 2>&1'" | sudo tee -a /etc/crontab
 
 # Restart cron to apply the new jobs
 sudo systemctl restart crond

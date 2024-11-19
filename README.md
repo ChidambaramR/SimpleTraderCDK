@@ -1,47 +1,37 @@
 
 # Welcome to your CDK Python project!
 
-This is a blank project for CDK development with Python.
+This project tracks the AWS infrastructure used for SimpleTrader trading application
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
-
-This project is set up like a standard Python project.  The initialization
-process also creates a virtualenv within this project, stored under the `.venv`
-directory.  To create the virtualenv it assumes that there is a `python3`
-(or `python` for Windows) executable in your path with access to the `venv`
-package. If for any reason the automatic creation of the virtualenv fails,
-you can create the virtualenv manually.
-
-To manually create a virtualenv on MacOS and Linux:
-
-```
-$ python3 -m venv .venv
-```
-
-After the init process completes and the virtualenv is created, you can use the following
-step to activate your virtualenv.
-
-```
-$ source .venv/bin/activate
-```
-
-If you are a Windows platform, you would activate the virtualenv like this:
-
-```
-% .venv\Scripts\activate.bat
-```
-
-Once the virtualenv is activated, you can install the required dependencies.
-
-```
-$ pip install -r requirements.txt
-```
-
-At this point you can now synthesize the CloudFormation template for this code.
-
-```
-$ cdk synth
-```
+- Install aws clie and cdk cli locally in your MAC
+- Checkout the package and do cdk bootstrap if you are running for the very first time
+- Else, do cdk deploy and observe the diff
+- The following will be created
+  - EC2 machine
+    - To access the ec2 machine through terminal
+      - The key pair for ec2 machine will be present in the parameter store of AWS Systems manager ( AWS Systems Manager -> Parameter Store) in the namespace /ec2
+      - Download the key pair ( aws ssm get-parameter --name "<parameter-name>" --with-decryption --query "Parameter.Value" --output text > SimpleTraderEC2KeyPair.pem )
+      - Give permissions ( chmod 400 SimpleTraderEC2KeyPair.pem)
+      - The public IP address can be found from AWS Console or the following command ( aws ec2 describe-instances --instance-ids i-019921037dd3c62e2 --query "Reservations[*].Instances[*].PublicIpAddress" --output text )
+      - To SSH, use the command ( ssh -i SimpleTraderEC2KeyPair.pem ec2-user@13.233.197.98 )
+      - To SCP, use the command ( scp -i SimpleTraderEC2KeyPair.pem <local-file-path> ec2-user@13.233.197.98:<remote-file-path> )
+  - Lambda to start and stop the ec2 machine
+  - Eventbridge rule to trigger the lambda
+- NOTE: For now, we have to manually create a S3 bucket since cdk deploy is not updating the S3 bucket and this results in a failure or a rollback of the stack during deploy
+- This is the high level flow the different components
+  - The ec2 machine is created upon stack synthesis.
+    - It sets up the machine for Python3.9 since the algorithm and trading platform was developed using Python3.9
+    - We setup a couple of cron jobs to run before the trading hours start. This usually setsup the trade by downloading historical data for context
+  - The event bridge triggers the lambda at designated times (few minutes before trading day start and few minutes after trading day end)
+  - The start lambda does the following
+    - Cleans the working directory (/home/ec2-user/projects/SimpleTrader) of the ec2 host to remove previous trading data
+    - Redownloads the following
+      - Latest code base from the S3 bucket
+      - keys.json containing the aws api key and secret key
+      - access_token.txt which contains that days access token obtained from Zerodha
+      - prod_data.db which contains any OHLC data for today
+      - Downloads requirements.txt from S3 bucket and sets up Python site-packages required
+  - During trading time, the cron job starts the trading script
 
 To add additional dependencies, for example other CDK libraries, just add
 them to your `setup.py` file and rerun the `pip install -r requirements.txt`
