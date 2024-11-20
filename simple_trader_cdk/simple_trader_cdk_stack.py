@@ -98,7 +98,7 @@ python3.9 -m pip install --upgrade pip
 sudo chown -R ec2-user:ec2-user /home/ec2-user/
 
 # Create the cron job entries
-echo "15 8 * * 1-5 ec2-user /bin/bash -c 'CURRENT_DATE=\$(date +\%Y-\%m-\%d); mkdir -p /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE; /usr/local/bin/python3.9 /home/ec2-user/projects/SimpleTrader/src/trade.py >> /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE/trade.log 2>&1'" | sudo tee -a /etc/crontab
+echo "10 9 * * 1-5 ec2-user /bin/bash -c 'CURRENT_DATE=\$(date +\%Y-\%m-\%d); mkdir -p /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE; /usr/local/bin/python3.9 /home/ec2-user/projects/SimpleTrader/src/trade.py >> /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE/trade.log 2>&1'" | sudo tee -a /etc/crontab
 
 # Restart cron to apply the new jobs
 sudo systemctl restart crond
@@ -145,12 +145,12 @@ sudo systemctl restart crond
 
         # Create EventBridge rules to trigger Lambda functions
         start_rule = events.Rule(self, "StartRule",
-            schedule=events.Schedule.cron(minute="31", hour="2", week_day="MON-FRI")  # Every weekday at 8:01AM IST / 2:31AM UTC. DST should not affect this
+            schedule=events.Schedule.cron(minute="20", hour="3", week_day="MON-FRI")  # Every weekday at 8:50AM IST / 3:20AM UTC. DST should not affect this
         )
         start_rule.add_target(targets.LambdaFunction(start_lambda))
 
         stop_rule = events.Rule(self, "StopRule",
-            schedule=events.Schedule.cron(minute="25", hour="10", week_day="MON-FRI")  # Every weekday at 3:55PM IST / 10:25AM UTC. DST should not affect this
+            schedule=events.Schedule.cron(minute="15", hour="10", week_day="MON-FRI")  # Every weekday at 3:45PM IST / 10:15AM UTC. DST should not affect this
         )
         stop_rule.add_target(targets.LambdaFunction(stop_lambda))
 
