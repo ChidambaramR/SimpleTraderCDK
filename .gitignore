@@ -6,6 +6,8 @@ __pycache__
 *.egg-info
 
 cdk_venv
+SimpleTraderEC2KeyPair.pem
+.vscode/
 
 # CDK asset staging directory
 .cdk.staging
