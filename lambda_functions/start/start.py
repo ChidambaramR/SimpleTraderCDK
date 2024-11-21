@@ -20,7 +20,7 @@ def is_today_holiday():
         pd.Timestamp("2024-10-02", tz="Asia/Kolkata"),  # Wed, Mahatma Gandhi Jayanti
         pd.Timestamp("2024-11-01", tz="Asia/Kolkata"),  # Fri, Diwali
         pd.Timestamp("2024-11-15", tz="Asia/Kolkata"),  # Fri, Guru Nanak's Birthday
-        pd.Timestamp("2024-11-20", tz="Asia/Kolkata"),  # Fri, Guru Nanak's Birthday
+        pd.Timestamp("2024-11-20", tz="Asia/Kolkata"),  # Maharashtra election
         pd.Timestamp("2024-12-25", tz="Asia/Kolkata"),  # Wed, Christmas
     ]
     
@@ -63,7 +63,6 @@ def handler(event, context):
     repo_key = "repo.zip"
     config_key = "config.py"
     requirements_key = "requirements.txt"
-    access_token_key = "access_token.txt"
     keysjson_key = "keys.json"
     wd_path = f"/home/ec2-user/projects/{app_name}"
     repo_local_path = f"{wd_path}/repo.zip"
@@ -71,9 +70,9 @@ def handler(event, context):
     commands = [
             # Step 1: Remove existing directory
             f"rm -rf {wd_path}",
-            f"echo \"Copying repo {repo_key} from bucket {bucket_name} to {repo_local_path}\"",
 
             # Step 2: Download and unzip repo.zip
+            f"echo \"Copying repo {repo_key} from bucket {bucket_name} to {repo_local_path}\"",
             f"aws s3 cp s3://{bucket_name}/{repo_key} {repo_local_path}",
             f"mkdir -p {wd_path}",
             f"unzip {repo_local_path} -d {wd_path}",
@@ -86,19 +85,15 @@ def handler(event, context):
             f"echo \"Copying requirements.txt from bucket {bucket_name} to {wd_path}/{requirements_key}\"",
             f"aws s3 cp s3://{bucket_name}/{requirements_key} {wd_path}/{requirements_key}",
 
-            # Step 5: Download access_token.txt
-            f"echo \"Copying access_token.txt from bucket {bucket_name} to {wd_path}/{access_token_key}\"",
-            f"aws s3 cp s3://{bucket_name}/{access_token_key} {wd_path}/{access_token_key}",
-
-            # Step 6: Download keys.json
+            # Step 5: Download keys.json
             f"echo \"Copying keys.json from bucket {bucket_name} to {wd_path}/{keysjson_key}\"",
             f"aws s3 cp s3://{bucket_name}/{keysjson_key} {wd_path}/{keysjson_key}",
 
-            # Step 7: install dependencies
+            # Step 6: install dependencies
             f"cd {wd_path}",
             "python3.9 -m pip install -r requirements.txt",
 
-            # Step 8: Restore permissions since we created new directories
+            # Step 7: Restore permissions since we created new directories
             "sudo chown -R ec2-user:ec2-user /home/ec2-user/",
     ]
 

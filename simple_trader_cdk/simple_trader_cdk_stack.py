@@ -98,7 +98,7 @@ python3.9 -m pip install --upgrade pip
 sudo chown -R ec2-user:ec2-user /home/ec2-user/
 
 # Create the cron job entries
-echo "10 9 * * 1-5 ec2-user /bin/bash -c 'CURRENT_DATE=\$(date +\%Y-\%m-\%d); mkdir -p /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE; /usr/local/bin/python3.9 /home/ec2-user/projects/SimpleTrader/src/trade.py >> /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE/trade.log 2>&1'" | sudo tee -a /etc/crontab
+echo "10 9 * * 1-5 ec2-user /bin/bash -c 'CURRENT_DATE=\$(date +\%Y-\%m-\%d); mkdir -p /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE; cd /home/ec2-user/projects/SimpleTrader; export PYTHONPATH\=/home/ec2-user/projects/SimpleTrader/src && /usr/local/bin/python3.9 /home/ec2-user/projects/SimpleTrader/src/setup/setup.py >> /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE/trade.log 2>&1'" | sudo tee -a /etc/crontab
 
 # Restart cron to apply the new jobs
 sudo systemctl restart crond
