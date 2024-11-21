@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import boto3
 import time
@@ -20,7 +20,7 @@ def is_today_holiday():
         pd.Timestamp("2024-10-02", tz="Asia/Kolkata"),  # Wed, Mahatma Gandhi Jayanti
         pd.Timestamp("2024-11-01", tz="Asia/Kolkata"),  # Fri, Diwali
         pd.Timestamp("2024-11-15", tz="Asia/Kolkata"),  # Fri, Guru Nanak's Birthday
-        pd.Timestamp("2024-11-20", tz="Asia/Kolkata"),  # Maharashtra election
+        pd.Timestamp("2024-11-20", tz="Asia/Kolkata"),  # Wed, Maharashtra election
         pd.Timestamp("2024-12-25", tz="Asia/Kolkata"),  # Wed, Christmas
     ]
     
@@ -30,10 +30,43 @@ def is_today_holiday():
 
     return False
 
+
+def is_config_file_old(bucket_name, object_key):
+    # Initialize S3 client
+    s3_client = boto3.client('s3')
+    
+    try:
+        # Fetch object metadata
+        response = s3_client.head_object(Bucket=bucket_name, Key=object_key)
+        
+        # Extract the LastModified timestamp, in UTC for uniform handling
+        last_modified = response['LastModified'].astimezone(timezone.utc)
+        
+        # Calculate the difference
+        time_difference =  datetime.now(timezone.utc) - last_modified
+        
+        # Check if less than 18 hours
+        is_file_old = time_difference > timedelta(hours=18)
+        
+        print(f"File '{object_key}' last modified on {last_modified}")
+        print(f"Time difference: {time_difference}")
+        print(f"Is the file uploaded less than 18 hours ago? {is_file_old}")
+        
+        return is_file_old
+
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return None
+
 def handler(event, context):
     instance_id = os.environ['INSTANCE_ID']
     bucket_name = os.environ['BUCKET_NAME']
     app_name = os.environ['APP_NAME']
+    config_key = "config.py"
+
+    if is_config_file_old(bucket_name, config_key):
+        print("Not starting ec2 machine because config is not updated recently.")
+        return {"status": "Success", "details": "Did not start ec2 machine because of no config updates in last 18 hours"}
 
     if is_today_holiday():
         print("Not starting ec2 machine because today is a holiday")
@@ -61,7 +94,6 @@ def handler(event, context):
 
     # Step 2: Prep the host by setting up the directories
     repo_key = "repo.zip"
-    config_key = "config.py"
     requirements_key = "requirements.txt"
     keysjson_key = "keys.json"
     wd_path = f"/home/ec2-user/projects/{app_name}"
