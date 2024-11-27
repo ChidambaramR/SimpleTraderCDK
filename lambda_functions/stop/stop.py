@@ -28,7 +28,7 @@ def upload_logs_to_s3():
     commands = [
         f"echo \"Uploading log file to S3\"",
         f"CURRENT_DATE=$(date +%Y-%m-%d)",
-        f"aws s3 cp /home/ec2-user/projects/{app_name}Logs/trade_logs/$CURRENT_DATE/ s3://{bucket_name}/{app_name}Logs/$CURRENT_DATE/ --recursive",
+        f"aws s3 cp /home/ec2-user/projects/{app_name}/trade_logs/$CURRENT_DATE/ s3://{bucket_name}/{app_name}Logs/$CURRENT_DATE/ --recursive",
     ]
 
     ssm_client = boto3.client('ssm')

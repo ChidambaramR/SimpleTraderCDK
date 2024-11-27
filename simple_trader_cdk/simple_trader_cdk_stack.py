@@ -77,8 +77,6 @@ sudo yum install -y sqlite-devel
 sudo yum remove -y openssl-devel
 
 # Create the base directory if it doesn't exist
-mkdir -p /home/ec2-user/projects/SimpleTraderLogs/trade_logs
-mkdir -p /home/ec2-user/projects/SimpleTraderReports
 mkdir -p /home/ec2-user/installers
 
 # Install python 3.9.6
@@ -119,7 +117,7 @@ sudo python3.9 -m pip install TA-Lib
 sudo chown -R ec2-user:ec2-user /home/ec2-user/
 
 # Create the cron job entries
-echo "55 8 * * 1-5 ec2-user /bin/bash -c 'CURRENT_DATE=\$(date +\%Y-\%m-\%d); mkdir -p /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE; cd /home/ec2-user/projects/SimpleTrader; export PYTHONPATH\=/home/ec2-user/projects/SimpleTrader/src && /usr/local/bin/python3.9 /home/ec2-user/projects/SimpleTrader/src/setup/setup.py >> /home/ec2-user/projects/SimpleTraderLogs/trade_logs/\$CURRENT_DATE/trade.log 2>&1'" | sudo tee -a /etc/crontab
+echo "41 17 * * 1-5 ec2-user /bin/bash -c 'cd /home/ec2-user/projects/SimpleTrader; export PYTHONPATH\=/home/ec2-user/projects/SimpleTrader/src && /usr/local/bin/python3.9 /home/ec2-user/projects/SimpleTrader/src/setup/setup.py 2>&1'" | sudo tee -a /etc/crontab
 
 # Restart cron to apply the new jobs
 sudo systemctl restart crond
