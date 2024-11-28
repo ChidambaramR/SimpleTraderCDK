@@ -117,7 +117,7 @@ sudo python3.9 -m pip install TA-Lib
 sudo chown -R ec2-user:ec2-user /home/ec2-user/
 
 # Create the cron job entries
-echo "41 17 * * 1-5 ec2-user /bin/bash -c 'cd /home/ec2-user/projects/SimpleTrader; export PYTHONPATH\=/home/ec2-user/projects/SimpleTrader/src && /usr/local/bin/python3.9 /home/ec2-user/projects/SimpleTrader/src/setup/setup.py 2>&1'" | sudo tee -a /etc/crontab
+echo "55 8 * * 1-5 ec2-user /bin/bash -c 'cd /home/ec2-user/projects/SimpleTrader; export PYTHONPATH\=/home/ec2-user/projects/SimpleTrader/src && /usr/local/bin/python3.9 /home/ec2-user/projects/SimpleTrader/src/setup/setup.py 2>&1'" | sudo tee -a /etc/crontab
 
 # Restart cron to apply the new jobs
 sudo systemctl restart crond
