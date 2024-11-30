@@ -1,0 +1,1 @@
+IP=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --output text) ; ssh -i SimpleTraderEC2KeyPair.pem ec2-user@$IP
