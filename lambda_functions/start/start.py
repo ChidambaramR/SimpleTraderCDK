@@ -22,6 +22,20 @@ def is_today_holiday():
         pd.Timestamp("2024-11-15", tz="Asia/Kolkata"),  # Fri, Guru Nanak's Birthday
         pd.Timestamp("2024-11-20", tz="Asia/Kolkata"),  # Wed, Maharashtra election
         pd.Timestamp("2024-12-25", tz="Asia/Kolkata"),  # Wed, Christmas
+        pd.Timestamp("2025-02-26", tz="Asia/Kolkata"),  # Wed, Mahashivratri
+        pd.Timestamp("2025-03-14", tz="Asia/Kolkata"),  # Fri, Holi
+        pd.Timestamp("2025-03-31", tz="Asia/Kolkata"),  # Mon, Id-Ul-Fitr (Ramadan Eid)
+        pd.Timestamp("2025-04-10", tz="Asia/Kolkata"),  # Thu, Shri Mahavir Jayanti
+        pd.Timestamp("2025-04-14", tz="Asia/Kolkata"),  # Mon, Dr. Baba Saheb Ambedkar Jayanti
+        pd.Timestamp("2025-04-18", tz="Asia/Kolkata"),  # Fri, Good Friday
+        pd.Timestamp("2025-05-01", tz="Asia/Kolkata"),  # Thu, Maharashtra Day
+        pd.Timestamp("2025-08-15", tz="Asia/Kolkata"),  # Fri, Independence Day
+        pd.Timestamp("2025-08-27", tz="Asia/Kolkata"),  # Wed, Ganesh Chaturthi
+        pd.Timestamp("2025-10-02", tz="Asia/Kolkata"),  # Thu, Mahatma Gandhi Jayanti/Dussehra
+        pd.Timestamp("2025-10-21", tz="Asia/Kolkata"),  # Tue, Diwali Laxmi Pujan*
+        pd.Timestamp("2025-10-22", tz="Asia/Kolkata"),  # Wed, Diwali-Balipratipada
+        pd.Timestamp("2025-11-05", tz="Asia/Kolkata"),  # Wed, Prakash Gurpurb Sri Guru Nanak Dev
+        pd.Timestamp("2025-12-25", tz="Asia/Kolkata"),  # Thu, Christmas
     ]
     
     end_datetime = pd.Timestamp(datetime.now().date(), tz="Asia/Kolkata")
