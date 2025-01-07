@@ -78,9 +78,9 @@ def handler(event, context):
     app_name = os.environ['APP_NAME']
     config_key = "config.py"
 
-    if is_config_file_old(bucket_name, config_key):
-        print("Not starting ec2 machine because config is not updated recently.")
-        return {"status": "Success", "details": "Did not start ec2 machine because of no config updates in last 18 hours"}
+    # if is_config_file_old(bucket_name, config_key):
+    #     print("Not starting ec2 machine because config is not updated recently.")
+    #     return {"status": "Success", "details": "Did not start ec2 machine because of no config updates in last 18 hours"}
 
     if is_today_holiday():
         print("Not starting ec2 machine because today is a holiday")
