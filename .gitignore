@@ -12,5 +12,6 @@ SimpleTraderEC2KeyPair.pem
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+venv/
 
 *.pem
