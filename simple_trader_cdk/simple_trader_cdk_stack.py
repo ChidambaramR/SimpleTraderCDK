@@ -92,27 +92,6 @@ sudo make altinstall
 python3.9 -m ensurepip --upgrade
 python3.9 -m pip install --upgrade pip
 
-## Download TA-Lib C code
-cd /home/ec2-user/installers
-sudo wget -O ta-lib.tar.gz https://excellmedia.dl.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz?viasf=1
-sudo tar -xzf ta-lib.tar.gz
-cd ta-lib/
-
-## Refetch config.guess and config.sub as they seem to be outdated from download file
-sudo mv config.guess config.guess.bak
-sudo mv config.sub config.sub.bak
-wget -O config.guess https://git.savannah.gnu.org/cgit/config.git/plain/config.guess
-wget -O config.sub https://git.savannah.gnu.org/cgit/config.git/plain/config.sub
-
-## Install TA-Lib in system and in python
-sudo ./configure --prefix=/usr
-sudo make
-sudo make install
-export TA_LIBRARY_PATH=/usr/lib
-export TA_INCLUDE_PATH=/usr/include
-cd /home/ec2-user/installers/Python-3.9.6
-sudo python3.9 -m pip install TA-Lib
-
 # Give back control to the user
 sudo chown -R ec2-user:ec2-user /home/ec2-user/
 
