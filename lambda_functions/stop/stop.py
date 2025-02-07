@@ -28,6 +28,7 @@ def upload_logs_to_s3():
     commands = [
         f"echo \"Uploading log file to S3\"",
         f"CURRENT_DATE=$(date +%Y-%m-%d)",
+        f"cd /home/ec2-user/projects/{app_name}; export PYTHONPATH\=/home/ec2-user/projects/{app_name}/src && /usr/local/bin/python3.9 /home/ec2-user/projects/{app_name}/src/setup/closure_setup.py",
         f"aws s3 cp /home/ec2-user/projects/{app_name}/trade_logs/$CURRENT_DATE/ s3://{bucket_name}/{app_name}Logs/$CURRENT_DATE/ --recursive",
     ]
 
