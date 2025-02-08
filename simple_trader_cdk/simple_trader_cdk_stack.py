@@ -1,4 +1,6 @@
 import os
+import boto3
+
 from aws_cdk import (
     Duration,
     aws_ec2 as ec2,
@@ -28,6 +30,9 @@ class SimpleTraderCdkStack(Stack):
 
         # Automatically start and stop ec2 instance
         self.create_start_stop_role(instance, app_name, role, bucket_name)
+
+        # Create Athena table for analyzing trading data
+        self.create_athena_table(bucket_name)
 
     def create_ec2_instance(self, app_name, vpc, role):
         wd_path = f"/home/ec2-user/projects/{app_name}"
@@ -191,3 +196,78 @@ sudo systemctl restart crond
         )
 
         return role
+
+    def create_athena_table(self, bucket_name: str):
+        glue_client = boto3.client('glue')
+        
+        # Create database if it doesn't exist
+        try:
+            glue_client.create_database(
+                DatabaseInput={
+                    'Name': 'trading_analytics'
+                }
+            )
+        except glue_client.exceptions.AlreadyExistsException:
+            pass
+
+        # Create table
+        table_input = {
+            'Name': 'order_ledger',
+            'TableType': 'EXTERNAL_TABLE',
+            'Parameters': {
+                'classification': 'csv',
+                'typeOfData': 'file',
+                'areColumnsQuoted': 'false',
+                'delimiter': ',',
+                'skip.header.line.count': '1'
+            },
+            'StorageDescriptor': {
+                'Location': f's3://{bucket_name}/SimpleTraderLedger/',
+                'InputFormat': 'org.apache.hadoop.mapred.TextInputFormat',
+                'OutputFormat': 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat',
+                'SerdeInfo': {
+                    'SerializationLibrary': 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe',
+                    'Parameters': {
+                        'serialization.format': ',',
+                        'field.delim': ',',
+                        'timestamp.formats': 'yyyy-MM-dd HH:mm:ss'
+                    }
+                },
+                'Columns': [
+                    {'Name': 'symbol', 'Type': 'string'},
+                    {'Name': 'entry_time', 'Type': 'timestamp'},
+                    {'Name': 'entry_price', 'Type': 'double'},
+                    {'Name': 'entry_qty', 'Type': 'int'},
+                    {'Name': 'entry_type', 'Type': 'string'},
+                    {'Name': 'entry_value', 'Type': 'double'},
+                    {'Name': 'entry_tag', 'Type': 'string'},
+                    {'Name': 'exit_time', 'Type': 'timestamp'},
+                    {'Name': 'exit_price', 'Type': 'double'},
+                    {'Name': 'exit_qty', 'Type': 'int'},
+                    {'Name': 'exit_type', 'Type': 'string'},
+                    {'Name': 'exit_value', 'Type': 'double'},
+                    {'Name': 'exit_tag', 'Type': 'string'},
+                    {'Name': 'buy_price', 'Type': 'double'},
+                    {'Name': 'sell_price', 'Type': 'double'},
+                    {'Name': 'buy_value', 'Type': 'double'},
+                    {'Name': 'sell_value', 'Type': 'double'},
+                    {'Name': 'charges', 'Type': 'double'},
+                    {'Name': 'gross_pnl', 'Type': 'double'},
+                    {'Name': 'net_pnl', 'Type': 'double'}
+                ]
+            }
+        }
+
+        try:
+            glue_client.create_table(
+                DatabaseName='trading_analytics',
+                TableInput=table_input
+            )
+            print("Successfully created Athena table")
+        except glue_client.exceptions.AlreadyExistsException:
+            print("Table already exists. Updating schema...")
+            glue_client.update_table(
+                DatabaseName='trading_analytics',
+                TableInput=table_input
+            )
+            print("Successfully updated Athena table")
