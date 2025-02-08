@@ -26,6 +26,7 @@ class IamStack(Stack):
                 iam.ManagedPolicy.from_aws_managed_policy_name("AWSLambda_FullAccess"),
                 iam.ManagedPolicy.from_aws_managed_policy_name("AmazonEventBridgeFullAccess"),
                 iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSSMFullAccess"),
+                iam.ManagedPolicy.from_aws_managed_policy_name("AmazonAthenaFullAccess")
             ]
         )
 
