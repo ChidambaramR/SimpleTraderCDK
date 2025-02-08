@@ -77,7 +77,6 @@ def handler(event, context):
     bucket_name = os.environ['BUCKET_NAME']
     app_name = os.environ['APP_NAME']
     config_key = "config.py"
-    config_pre_market_key = "config_pre_market.py"
     # if is_config_file_old(bucket_name, config_key):
     #     print("Not starting ec2 machine because config is not updated recently.")
     #     return {"status": "Success", "details": "Did not start ec2 machine because of no config updates in last 18 hours"}
@@ -123,11 +122,9 @@ def handler(event, context):
             f"mkdir -p {wd_path}",
             f"unzip {repo_local_path} -d {wd_path}",
 
-            # Step 3: Download config.py and config_pre_market.py
+            # Step 3: Download config.py
             f"echo \"Copying config.py from bucket {bucket_name} to {wd_path}/src/{config_key}\"",
             f"aws s3 cp s3://{bucket_name}/{config_key} {wd_path}/src/{config_key}",
-            f"echo \"Copying config_pre_market.py from bucket {bucket_name} to {wd_path}/src/{config_pre_market_key}\"",
-            f"aws s3 cp s3://{bucket_name}/{config_pre_market_key} {wd_path}/src/{config_pre_market_key}",
 
             # Step 4: Download requirements.txt
             f"echo \"Copying requirements.txt from bucket {bucket_name} to {wd_path}/{requirements_key}\"",
