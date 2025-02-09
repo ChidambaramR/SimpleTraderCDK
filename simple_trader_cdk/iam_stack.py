@@ -72,6 +72,7 @@ class IamStack(Stack):
             group_name="programmatic-access",
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name("AmazonS3FullAccess"),
+                iam.ManagedPolicy.from_aws_managed_policy_name("AWSLambda_FullAccess")
             ]
         )
         programmatic_access_user = iam.User(self, "ProgrammaticAccessUser",
