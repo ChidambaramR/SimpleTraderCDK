@@ -168,6 +168,7 @@ sudo systemctl restart crond
                     managed_policies=[
                         iam.ManagedPolicy.from_aws_managed_policy_name("AmazonEC2FullAccess"),  # EC2 permissions
                         iam.ManagedPolicy.from_aws_managed_policy_name("AmazonS3FullAccess"),  # S3 permissions
+                        iam.ManagedPolicy.from_aws_managed_policy_name("AWSLambda_FullAccess"),  # Lambda permissions
                         iam.ManagedPolicy.from_aws_managed_policy_name("AmazonSSMManagedInstanceCore")  # Add SSM permissions
                     ]
         )
