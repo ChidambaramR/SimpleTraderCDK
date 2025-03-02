@@ -196,6 +196,15 @@ sudo systemctl restart crond
             )
         )
 
+        role.add_to_policy(
+            iam.PolicyStatement(
+                sid="SecretsManagerRead",
+                effect=iam.Effect.ALLOW,
+                actions=["secretsmanager:GetSecretValue"],
+                resources=["arn:aws:secretsmanager:*:*:secret:*"],
+            )
+        )
+
         return role
 
     def create_athena_table(self, bucket_name: str):
