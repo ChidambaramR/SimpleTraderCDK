@@ -117,11 +117,11 @@ sudo systemctl restart crond
 
     def create_start_stop_role(self, instance, app_name, role, bucket_name):
         # https://aws-sdk-pandas.readthedocs.io/en/stable/layers.html
-        lambda_layer_arn = "arn:aws:lambda:ap-south-1:336392948345:layer:AWSSDKPandas-Python39:26"
+        lambda_layer_arn = "arn:aws:lambda:ap-south-1:336392948345:layer:AWSSDKPandas-Python312:17"
 
         # Create Lambda functions to start and stop the instance
         start_lambda = _lambda.Function(self, "Start"+app_name+"InstanceLambda",
-            runtime=_lambda.Runtime.PYTHON_3_9,
+            runtime=_lambda.Runtime.PYTHON_3_12,
             code=_lambda.Code.from_asset("lambda_functions/start"),
             handler="start.handler",
             role=role,
@@ -135,7 +135,7 @@ sudo systemctl restart crond
         )
 
         stop_lambda = _lambda.Function(self, "Stop"+app_name+"InstanceLambda",
-            runtime=_lambda.Runtime.PYTHON_3_9,
+            runtime=_lambda.Runtime.PYTHON_3_12,
             code=_lambda.Code.from_asset("lambda_functions/stop"),
             handler="stop.handler",
             timeout=Duration.seconds(300),  # Increase timeout to 5 minutes
