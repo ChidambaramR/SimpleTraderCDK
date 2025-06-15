@@ -32,16 +32,14 @@ sudo mkdir -p /mnt/data
 sudo mount $DEVICE /mnt/data
 echo "$DEVICE /mnt/data ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
 
-sudo mkdir /mnt/data/analytics_db
+sudo mkdir -p /mnt/data/analytics_db
+sudo mkdir -p /mnt/data/analytics_logs
 sudo chown ec2-user:ec2-user /mnt/data/analytics_db
+sudo chown ec2-user:ec2-user /mnt/data/analytics_logs
 
 # Create .htpasswd file for basic auth
 echo "Creating basic auth credentials..."
 sudo htpasswd -bc /etc/nginx/.htpasswd {user_name} {passw}
-
-# Start and enable Nginx
-sudo systemctl enable nginx
-sudo systemctl start nginx
 """
 
 

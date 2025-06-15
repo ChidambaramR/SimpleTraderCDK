@@ -1,5 +1,6 @@
 import boto3
 import os
+import time
 
 ec2_client = boto3.client('ec2')
 ssm_client = boto3.client('ssm')
@@ -77,50 +78,58 @@ def update_route53(public_ip):
 # 4. Bootstrap flask app via SSM
 def create_flask_app(instance_id):
     command = f"""#!/bin/bash
-                cd {TARGET_DIR}
-                rm -rf {TARGET_DIR}/analytics
-                mkdir -p analytics
-                cd analytics
-                aws s3 cp s3://{S3_BUCKET}/{S3_KEY} .
-                unzip -o repo_analytics.zip
-                python3 -m venv venv
-                source venv/bin/activate
-                pip install --upgrade pip
-                pip install -r requirements.txt
-                pip install gunicorn flask
+cd {TARGET_DIR}
+rm -rf {TARGET_DIR}/analytics
+mkdir -p analytics
+cd analytics
+aws s3 cp s3://{S3_BUCKET}/{S3_KEY} .
+unzip -o repo_analytics.zip
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+pip install gunicorn flask
 
-                # Start Gunicorn
-                nohup gunicorn --bind 127.0.0.1:8000 app:app &
+# Start Gunicorn
+nohup gunicorn --bind 127.0.0.1:8000 app:app --access-logfile /mnt/data/analytics_logs/access.log --error-logfile /mnt/data/analytics_logs/error.log --log-level info > /mnt/data/analytics_logs/gunicorn.log 2>&1 &
 
-                # Configure NGINX
-                sudo tee /etc/nginx/conf.d/flaskapp.conf > /dev/null <<'EOF'
-                server {{
-                    listen 80;
-                    server_name _;
+sudo systemctl enable nginx
+sudo systemctl start nginx
 
-                    location / {{
-                        auth_basic "Restricted Access";
-                        auth_basic_user_file /etc/nginx/.htpasswd;
+# Configure NGINX
+sudo tee /etc/nginx/conf.d/flaskapp.conf > /dev/null <<'EOF'
+server {{
+    listen 80;
+    server_name _;
 
-                        proxy_pass http://127.0.0.1:8000;
-                        proxy_set_header Host \$host;
-                        proxy_set_header X-Real-IP \$remote_addr;
+    location / {{
+        auth_basic "Restricted Access";
+        auth_basic_user_file /etc/nginx/.htpasswd;
 
-                        if (\$http_user_agent ~* (googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex)) {{
-                            return 403;
-                        }}
-                    }}
-                }}
-                EOF
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
 
-                sudo nginx -t && sudo systemctl reload nginx
+        if ($http_user_agent ~* (googlebot|bingbot|slurp|duckduckbot|baiduspider|yandex)) {{
+            return 403;
+        }}
+    }}
+}}
+EOF
+
+sudo nginx -t && sudo systemctl reload nginx
+
+# Warmup call - important
+curl -s -o /dev/null -w "%{{http_code}}" "http://127.0.0.1:8000/backtest/gaps/trading_gaps_leg2/run_test?from_date=2024-12-01&to_date=2024-12-31&stop_loss=5&take_profit=3&entry_time=09%3A17&trade_direction=ALL&initial_capital=100000" | grep -q '^2' && echo "Primer Succeeded" || echo "Primer failed"
     """
 
-    ssm_client.send_command(
+    output = ssm_client.send_command(
         InstanceIds=[instance_id],
         DocumentName="AWS-RunShellScript",
         Parameters={'commands': [command]},
     )
+
+    return output
 
 # Main method
 def handler(event, context):
@@ -129,6 +138,21 @@ def handler(event, context):
     start_ec2(INSTANCE_ID)
     public_ip = associate_eip(INSTANCE_ID)
     update_route53(public_ip)
-    create_flask_app(INSTANCE_ID)
+    response = create_flask_app(INSTANCE_ID)
+
+    command_id = response['Command']['CommandId']
+    output = None
+
+    # Poll until the command finishes
+    while (output is None or output.get('Status') in ['Pending', 'InProgress']):
+        time.sleep(2)
+        output = ssm_client.get_command_invocation(
+            CommandId=command_id,
+            InstanceId=INSTANCE_ID,
+        )
+
+    print("Command status:", output['Status'])
+    print("Standard output:\n", output.get('StandardOutputContent', ''))
+    print("Standard error:\n", output.get('StandardErrorContent', ''))
 
     return {"status": "Success", "details": f"Started EC2, EIP: {public_ip}, A record updated."}
