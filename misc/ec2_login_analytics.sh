@@ -1,0 +1,1 @@
+IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=AnalyticsStack/AnalyticsInstance" --query "Reservations[*].Instances[*].PublicIpAddress" --output text) ; ssh -i AnalyticsEC2KeyPair.pem ec2-user@$IP
